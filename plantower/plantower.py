@@ -7,6 +7,7 @@
 import logging
 from datetime import datetime, timedelta
 from serial import Serial, SerialException
+import time
 
 DEFAULT_SERIAL_PORT = "/dev/ttyUSB0" # Serial port to use if no other specified
 DEFAULT_BAUD_RATE = 9600 # Serial baud rate to use if no other specified
@@ -134,3 +135,11 @@ class Plantower(object):
                     return PlantowerReading(recv) # convert to reading object
             #If the character isn't what we are expecting loop until timeout
         raise PlantowerException("No message recieved")
+
+    def sleep(self):
+        # Send command to put device to sleep (turns off fan to prolong its life)
+        self.serial.write(bytearray([0x42,0x4D,0xE4,0x00,0x00,0x01,0x73]))
+
+    def wake_up(self)
+        # Send command to wake up from sleep
+        self.serial.write(bytearray([0x42,0x4D,0xE4,0x00,0x01,0x01,0x74]))
