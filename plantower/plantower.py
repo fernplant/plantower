@@ -140,6 +140,6 @@ class Plantower(object):
         # Send command to put device to sleep (turns off fan to prolong its life)
         self.serial.write(bytearray([0x42,0x4D,0xE4,0x00,0x00,0x01,0x73]))
 
-    def wake_up(self)
+    def wake_up(self):
         # Send command to wake up from sleep
         self.serial.write(bytearray([0x42,0x4D,0xE4,0x00,0x01,0x01,0x74]))
