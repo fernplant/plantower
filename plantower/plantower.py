@@ -18,6 +18,9 @@ DEFAULT_LOGGING_LEVEL = logging.WARN
 
 MSG_CHAR_1 = b'\x42' # First character to be recieved in a valid packet
 MSG_CHAR_2 = b'\x4d' # Second character to be recieved in a valid packet
+MSG_SLEEP = bytearray([0x42,0x4D,0xE4,0x00,0x00,0x01,0x73])
+MSG_WAKE = bytearray([0x42,0x4D,0xE4,0x00,0x01,0x01,0x74])
+WAKE_DELAY = 3
 
 class PlantowerReading(object):
     """
@@ -84,6 +87,8 @@ class Plantower(object):
                 port=self.port, baudrate=self.baud,
                 timeout=self.serial_timeout)
             self.logger.debug("Port Opened Successfully")
+            self.serial.write(MSG_WAKE) # Make sure device is in the awake state by default
+            self.is_asleep = False
         except SerialException as exp:
             self.logger.error(str(exp))
             raise PlantowerException(str(exp))
@@ -101,7 +106,7 @@ class Plantower(object):
         """
         calc = 0
         ord_arr = []
-        for c in bytearray(recv[:-2]): #Add all the bytes together except the checksum bytes
+        for c in bytearray(recv[:-2]): # Add all the bytes together except the checksum bytes
             calc += c
             ord_arr.append(c)
         self.logger.debug(str(ord_arr))
@@ -117,6 +122,8 @@ class Plantower(object):
             before performing the read, otherwise, it'll just read the first
             item in the buffer
         """
+        if self.is_asleep:
+            self.wake_up()
         recv = b''
         start = datetime.utcnow() #Start timer
         if perform_flush:
@@ -138,8 +145,14 @@ class Plantower(object):
 
     def sleep(self):
         # Send command to put device to sleep (turns off fan to prolong its life)
-        self.serial.write(bytearray([0x42,0x4D,0xE4,0x00,0x00,0x01,0x73]))
+        self.serial.write(MSG_SLEEP)
+        self.is_asleep = True
+        self.logger.debug('Device now in sleep mode')
 
     def wake_up(self):
         # Send command to wake up from sleep
-        self.serial.write(bytearray([0x42,0x4D,0xE4,0x00,0x01,0x01,0x74]))
+        self.serial.write(MSG_WAKE)
+        self.is_asleep = False
+        self.logger.debug('Device was woken up')
+        self.logger.debug(f"Sleeping {WAKE_DELAY}s for more stable reading before next read")
+        time.sleep(WAKE_DELAY)
